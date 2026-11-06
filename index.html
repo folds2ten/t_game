@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deepvale</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1>Deepvale</h1>
+      <p class="tag">A small tile-based RPG. Kill things, skill up, don't lose your backpack.</p>
+      <div id="continue"></div>
+      <label>Character name <input id="name" maxlength="16" placeholder="Wanderer" autocomplete="off"></label>
+      <p class="dim">Choose a vocation:</p>
+      <div id="vocs"></div>
+    </div>
+  </div>
+
+  <div id="game" class="hidden">
+    <main>
+      <div class="viewwrap">
+        <canvas id="view"></canvas>
+        <div id="banner"></div>
+        <div id="win" class="hidden">
+          <div class="win-head"><span id="win-title"></span><button id="win-close">✕</button></div>
+          <div id="win-body"></div>
+        </div>
+        <div id="death" class="hidden">
+          <div class="card">
+            <h2>You are dead.</h2>
+            <div id="death-body"></div>
+            <button id="respawn">Wake at the temple</button>
+          </div>
+        </div>
+      </div>
+      <div id="hotbar"></div>
+      <div id="log"></div>
+      <input id="chat" placeholder="Press Enter to talk — try: hi, trade, vita lux" autocomplete="off">
+    </main>
+    <aside>
+      <section class="mm">
+        <canvas id="minimap" width="132" height="81"></canvas>
+        <div id="mm-label"></div>
+      </section>
+      <section id="stats"></section>
+      <section id="questsec" class="hidden">
+        <h3>Quests</h3>
+        <div id="quests"></div>
+      </section>
+      <section>
+        <h3>Equipment</h3>
+        <div id="equip"></div>
+      </section>
+      <section>
+        <h3>Backpack <span><button id="dropmode" title="Toggle drop mode: click items to drop them">🗑 Drop</button> <span id="gold"></span></span></h3>
+        <div id="pack"></div>
+        <p class="hint">Click: use or equip · Shift+click or 🗑: drop (into an open corpse) · Right-click: look</p>
+      </section>
+      <section>
+        <h3>Skills</h3>
+        <div id="skills"></div>
+      </section>
+      <section class="btns">
+        <button id="chase"></button>
+        <button id="mute" title="Sound on/off"></button>
+        <button id="newgame">New character</button>
+      </section>
+      <details class="help">
+        <summary>Controls &amp; spells</summary>
+        <p><b>Move</b> WASD / arrows, QEZC diagonals, or click ground.<br>
+          <b>Attack</b> click a creature, Space = nearest, Tab = cycle.<br>
+          <b>Talk</b> Enter, then type. NPCs answer to <i>hi</i>, keywords and <i>bye</i>.<br>
+          <b>Loot</b> click a corpse next to you. <b>Hotkeys</b> 1–9, right-click one to change it.</p>
+        <p><b>Spells</b> vita lux (heal) · lumen (light) · vigor (haste, lvl 3) · panis (bread: Ranger/Mender) ·
+          ignis (fire strike: Invoker/Mender) · terra spina (Mender lvl 4) · ignis orbis (Invoker lvl 8) ·
+          vita magna (Mender lvl 8) · vis ruptor (Warden lvl 5) · arcus vis (Ranger lvl 5)</p>
+        <p><b>Invoker</b> fulgur (lightning, lvl 5) · runa ignis (3 blaze runes, lvl 6) ·
+          ignis unda (flame wave where you face, lvl 10) · ignis magna (great fireball, lvl 12) ·
+          arcanum scutum (mana shield, lvl 14) · ignis pluvia (firestorm, lvl 20)</p>
+        <p><b>Marsh rites</b> (learned from Wend in the Saltmarsh, lvl 20): vis tremor (Warden) ·
+          arcus pluvia (Ranger) · tempestas (Invoker) · terra unda (Mender)</p>
+        <p><b>Quests</b> Say <i>quest</i> or <i>task</i> to Odran, Old Brann, Captain Maren and Wend.
+          The road sign east of town leads to the Saltmarsh.</p>
+      </details>
+    </aside>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
