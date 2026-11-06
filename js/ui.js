@@ -206,7 +206,7 @@ function renderPanel() {
     <div class="kv"><span>Food</span><b class="${p.food <= 0 ? 'bad' : ''}">${p.food > 0 ? `${Math.ceil(p.food / 60)} min` : 'hungry'}</b></div>
     <div class="kv"><span>Mana regen</span><b>${manaRegen(p)} / 2s</b></div>
     <div class="kv"><span>Speed</span><b>${Math.round(playerSpeed(p))}</b></div>
-    <div class="buffs">${p.lumen > 0 ? `<span>☀ light ${Math.ceil(p.lumen)}s</span>` : ''}${p.torch > 0 ? `<span>🕯 torch ${Math.ceil(p.torch)}s</span>` : ''}${p.haste > 0 ? `<span>💨 haste ${Math.ceil(p.haste)}s</span>` : ''}${p.mshield > 0 ? `<span>🔮 mana shield ${Math.ceil(p.mshield)}s</span>` : ''}${p.portal ? '<span>🌀 portal set</span>' : ''}</div>`;
+    <div class="buffs">${p.lumen > 0 ? `<span>☀ light ${Math.ceil(p.lumen)}s</span>` : ''}${p.torch > 0 ? `<span>🕯 torch ${Math.ceil(p.torch)}s</span>` : ''}${p.haste > 0 ? `<span>💨 haste ${Math.ceil(p.haste)}s</span>` : ''}${p.mshield > 0 ? `<span>🔮 mana shield ${Math.ceil(p.mshield)}s</span>` : ''}${p.portal ? '<span>🌀 portal set</span>' : ''}${p.cloak ? '<span>👁 cloaked</span>' : ''}${p.focus > 0 ? `<span>🎯 focus ${Math.ceil(p.focus)}s</span>` : ''}</div>`;
 
   $('skills').innerHTML = Object.keys(SKILL_NAMES).map((k) => {
     const s = p.skills[k];

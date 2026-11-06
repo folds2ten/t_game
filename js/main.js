@@ -17,7 +17,7 @@ let lastMap = 0;
 
 const SAVED_FIELDS = ['name', 'voc', 'level', 'xp', 'hp', 'mana', 'x', 'y', 'z', 'skills', 'equip', 'pack', 'depot',
   'food', 'lumen', 'torch', 'haste', 'mshield', 'hotkeys', 'chase', 'kills', 'deaths', 'packSlots', 'portal',
-  'quests', 'flags', 'explored'];
+  'quests', 'flags', 'explored', 'focus', 'lastAmmo'];
 
 function saveGame() {
   if (!player) return;
@@ -278,6 +278,14 @@ function everySecond(now) {
   const hadShield = p.mshield > 0;
   p.mshield = Math.max(0, p.mshield - 1);
   if (hadShield && p.mshield === 0) log('Your mana shield fades.', 'warn');
+  const hadFocus = p.focus > 0;
+  p.focus = Math.max(0, (p.focus || 0) - 1);
+  if (hadFocus && p.focus === 0) log('Your focus fades.', 'warn');
+  if (p.cloak) {
+    // Cloak drains 1 mana a second (no magic training) and fails when you run dry.
+    p.mana = Math.max(0, p.mana - 1);
+    if (p.mana === 0) { p.cloak = 0; log('Your cloak fails. You are visible again.', 'warn'); }
+  }
   if (p.food > 0 && now >= p.regenAt) {
     p.regenAt = now + 2000;
     const v = VOCATIONS[p.voc].regen;

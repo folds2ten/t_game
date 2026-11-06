@@ -21,7 +21,7 @@ Open `index.html`, type a name and pick a vocation. Your choice is permanent for
 | Vocation | Plays like | Per level | Trains fastest |
 |---|---|---|---|
 | **Warden** | Front-line melee with sword and shield. The most health of any vocation. | +15 HP, +5 mana, +25 cap | Melee, shielding |
-| **Ranger** | Shoots from up to 6 tiles away with a bow. Balanced health and mana. | +10 HP, +15 mana, +20 cap | Distance |
+| **Ranger** | Shoots from up to 6 tiles away with a bow. Conjures arrows and can cloak. Balanced health and mana. | +10 HP, +15 mana, +20 cap | Distance |
 | **Invoker** | Fragile fire caster with the strongest attack spells and the biggest spell list. | +5 HP, +30 mana, +10 cap | Magic |
 | **Mender** | Earth caster and healer. Best healing, and can conjure food. | +5 HP, +30 mana, +10 cap | Magic |
 
@@ -84,11 +84,18 @@ Type the words and press Enter, or put them on a hotkey. Spells cost mana, need 
 | `lumen` | Light | 1 | 20 | all | Light radius for 3 minutes |
 | `vigor` | Haste | 3 | 40 | all | +35% speed for 30s |
 | `panis` | Conjure Bread | 2 | 40 | Ranger, Mender | One bread |
+| `sagitta` | Conjure Arrows | 2 | 35 | Ranger | Puts 15 arrows straight into your quiver |
 | `ignis` | Fire Strike | 2 | 20 | Invoker, Mender | Ranged fire hit (4 tiles) |
 | `terra spina` | Thorn Strike | 4 | 20 | Mender | Ranged earth hit (4 tiles) |
 | `vita magna` | Greater Healing | 8 | 70 | Mender | Big heal |
 | `vis ruptor` | Cleave | 5 | 50 | Warden | Hits every adjacent enemy |
 | `arcus vis` | Spirit Arrow | 5 | 25 | Ranger | Magic shot that scales with distance skill (5 tiles) |
+| `umbra` | Cloak | 6 | 20 | Ranger | Creatures can't see you. Drains 1 mana/s. Attacking, recasting, or running out of mana ends it |
+| `saltus` | Disengage | 7 | 30 | Ranger | Leap 2 tiles away from your target |
+| `arcus ictus` | Power Shot | 8 | 40 | Ranger | Heavy bow shot (1.8× damage), uses 1 arrow |
+| `venator` | Hunter's Focus | 10 | 60 | Ranger | 30s: bow shots every 1.5s and +10% hit chance |
+| `arcus nodus` | Snare Shot | 12 | 50 | Ranger | Bow shot that slows the target to half speed for 5s |
+| `sagitta magna` | Conjure Barbed Arrows | 14 | 80 | Ranger | Puts 10 barbed arrows into your quiver |
 | `fulgur` | Lightning Bolt | 5 | 30 | Invoker | Ranged hit (5 tiles) |
 | `runa ignis` | Conjure Blaze Runes | 6 | 100 | Invoker | Makes 3 blaze runes |
 | `portus` | Shop Portal | 6 | 60 | Invoker | Opens a portal to Odran's shop. Cast again to return. |
@@ -118,7 +125,7 @@ Type the words and press Enter, or put them on a hotkey. Spells cost mana, need 
 Gear goes in eight slots: amulet, head, armor, weapon, shield, legs, feet, ammo. The colour behind an item hints at how rare it is.
 
 - **Wardens** want the highest-attack melee weapon and the best shield and armor they can carry.
-- **Rangers** need a bow and arrows in the ammo slot. Bows are two-handed. **Barbed arrows** (Wend) hit harder.
+- **Rangers** need a bow and arrows in the ammo slot. Bows are two-handed. **Barbed arrows** (Wend) hit harder. When the quiver empties, arrows in your backpack refill it automatically. About 40% of arrows that hit can be recovered from the corpse. Out of arrows completely? You throw a (very weak) punch at anything next to you.
 - **Casters** use wands (Invoker) or rods (Mender), which spend a little mana per shot. **Cloth gear** (robes, hoods, tomes) has little armor but adds mana regen and max mana.
 - **Wader boots** let you walk through bog and mud at full speed. They're worth it in the Saltmarsh.
 
@@ -192,6 +199,6 @@ Say `quest` or `task` to an NPC to take their quest. Say it again when you're do
 - **Keep potions on hotkeys.** Health and mana potions are on your bar by default.
 - **Stick to the boardwalks** in the Saltmarsh. Bog water slows you to a crawl.
 - **Invokers** can `portus` to the shop mid-hunt to sell and restock, then cast it again to go back.
-- **Menders and Rangers** never need to buy food: `panis` makes bread.
+- **Menders and Rangers** never need to buy food: `panis` makes bread. Rangers can conjure arrows too (`sagitta` from level 2).
 - **Shift+click** junk out of your backpack while a corpse is open, to make room for better loot.
 - **Right-click a creature** to see how hurt it is.

@@ -52,6 +52,9 @@ function hydratePlayer(p) {
   p.hotkeys = Array.isArray(p.hotkeys) ? p.hotkeys.slice(0, HOTKEY_SLOTS) : [];
   while (p.hotkeys.length < HOTKEY_SLOTS) p.hotkeys.push(null);
   p.mshield = p.mshield || 0;
+  p.focus = p.focus || 0;
+  p.cloak = 0; // never saved: a reload always starts visible
+  p.lastAmmo = p.lastAmmo || null;
   p.packSlots = p.packSlots || PACK_SLOTS;
   p.portal = p.portal || null;
   p.quests = p.quests && typeof p.quests === 'object' ? p.quests : {};
@@ -302,16 +305,18 @@ function creatureThink(c, now) {
   if (isMoving(c, now) || now < c.nextThink) return;
   const def = c.def;
   const p = player;
-  const sameFloor = p && !p.dead && p.z === c.z && !isSafeTile(p.x, p.y, p.z);
+  // A cloaked player is invisible to creatures.
+  const sameFloor = p && !p.dead && !p.cloak && p.z === c.z && !isSafeTile(p.x, p.y, p.z);
   const d = sameFloor ? dist(c, p) : 99;
   const fromSpawn = Math.max(Math.abs(c.x - c.sp.x), Math.abs(c.y - c.sp.y));
+  const step = def.step * (now < (c.slowUntil || 0) ? 2 : 1); // snared creatures move at half speed
   c.nextThink = now + 120;
 
   if (d <= 7 && fromSpawn < 14) {
-    if (def.flee && c.hp < c.maxHp * def.flee) { stepAwayFrom(c, p, now, def.step * 1.2); return; }
+    if (def.flee && c.hp < c.maxHp * def.flee) { stepAwayFrom(c, p, now, step * 1.2); return; }
     if (def.ranged) {
       const los = lineOfSight(c.x, c.y, p.x, p.y, c.z);
-      if (d < def.keep) { if (stepAwayFrom(c, p, now, def.step)) return; }
+      if (d < def.keep) { if (stepAwayFrom(c, p, now, step)) return; }
       if (d <= def.ranged && los) return;
     } else if (d <= 1) {
       return;
@@ -319,7 +324,7 @@ function creatureThink(c, now) {
     const path = findPath(c.x, c.y, c.z, (x, y) => x === p.x && y === p.y, 500);
     if (path && path.length > 0) {
       const [nx, ny] = path[0];
-      if (!(nx === p.x && ny === p.y)) stepEntity(c, nx - c.x, ny - c.y, now, def.step);
+      if (!(nx === p.x && ny === p.y)) stepEntity(c, nx - c.x, ny - c.y, now, step);
     }
     return;
   }
@@ -327,11 +332,11 @@ function creatureThink(c, now) {
   c.nextThink = now + 800 + Math.random() * 1800;
   if (fromSpawn > 4) {
     const path = findPath(c.x, c.y, c.z, (x, y) => x === c.sp.x && y === c.sp.y, 600);
-    if (path && path.length) stepEntity(c, path[0][0] - c.x, path[0][1] - c.y, now, def.step * 1.3);
+    if (path && path.length) stepEntity(c, path[0][0] - c.x, path[0][1] - c.y, now, step * 1.3);
     return;
   }
   const [dx, dy] = DIRS8[Math.floor(Math.random() * 4)];
-  stepEntity(c, dx, dy, now, def.step * 1.3);
+  stepEntity(c, dx, dy, now, step * 1.3);
 }
 
 function npcThink(n, now) {

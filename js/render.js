@@ -211,7 +211,9 @@ function render(ctx, now) {
       drawHumanoid(ctx, sx, sy, e.def.color, e.dir, now, moving, false);
       labels.push(() => drawNameBar(ctx, sx, sy, e.name, null, '#7ad0ff'));
     } else {
+      if (p.cloak) { ctx.save(); ctx.globalAlpha = 0.4; } // cloaked: translucent
       drawHumanoid(ctx, sx, sy, VOCATIONS[p.voc].color, e.dir, now, moving, now < (p.hitFlash || 0));
+      if (p.cloak) ctx.restore();
       labels.push(() => drawNameBar(ctx, sx, sy, p.name, p.hp / maxHp(p)));
     }
   }

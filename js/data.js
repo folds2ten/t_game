@@ -353,10 +353,11 @@ const VOCATIONS = {
   ranger: {
     name: 'Ranger', color: '#4f8a3a', hp: 10, mana: 15, cap: 20, regen: { hp: 2, mana: 2 },
     mul: { melee: 1.2, distance: 1.1, shielding: 1.1, magic: 1.4 },
-    desc: 'Kills from range with bow and arrows. Balanced health and mana.',
+    desc: 'Kills from range with bow and arrows. Conjures arrows, slips into the shadows. Balanced health and mana.',
     gear: { weapon: 'hunting_bow', ammo: ['arrow', 80], armor: 'leather_armor', head: 'leather_helmet' },
     pack: [['bread', 5], ['health_potion', 3], ['torch', 2], ['gold', 20]],
-    hotkeys: ['vita lux', 'arcus vis', 'item:health_potion', 'item:mana_potion', 'panis'],
+    hotkeys: ['vita lux', 'arcus vis', 'item:health_potion', 'item:mana_potion', 'panis', 'sagitta', 'umbra',
+      'saltus', 'arcus ictus'],
   },
   invoker: {
     name: 'Invoker', color: '#7a4bc2', hp: 5, mana: 30, cap: 10, regen: { hp: 1, mana: 4 },
@@ -396,6 +397,14 @@ const SPELLS = [
   { words: 'ignis pluvia', name: 'Firestorm', mana: 220, lvl: 20, cd: 6000, kind: 'area', radius: 3, voc: ['invoker'], f: [30, 2.0, 60, 4.0], color: '#ff3a00' },
   { words: 'vis ruptor', name: 'Cleave', mana: 50, lvl: 5, cd: 4000, kind: 'cleave', voc: ['warden'] },
   { words: 'arcus vis', name: 'Spirit Arrow', mana: 25, lvl: 5, cd: 2000, kind: 'pierce', range: 5, voc: ['ranger'], color: '#d0f0ff' },
+  // Ranger kit. shot/snare fire a real arrow from your bow; cloak drains 1 mana/s until you attack or recast.
+  { words: 'sagitta', name: 'Conjure Arrows', mana: 35, lvl: 2, cd: 2000, kind: 'conjure', item: 'arrow', count: 15, voc: ['ranger'] },
+  { words: 'umbra', name: 'Cloak', mana: 20, lvl: 6, cd: 2000, kind: 'cloak', voc: ['ranger'] },
+  { words: 'saltus', name: 'Disengage', mana: 30, lvl: 7, cd: 6000, kind: 'leap', voc: ['ranger'] },
+  { words: 'arcus ictus', name: 'Power Shot', mana: 40, lvl: 8, cd: 4000, kind: 'shot', mult: 1.8, voc: ['ranger'], color: '#ffe8a0' },
+  { words: 'venator', name: "Hunter's Focus", mana: 60, lvl: 10, cd: 2000, kind: 'focus', secs: 30, voc: ['ranger'] },
+  { words: 'arcus nodus', name: 'Snare Shot', mana: 50, lvl: 12, cd: 6000, kind: 'snare', mult: 1.0, slow: 5000, voc: ['ranger'], color: '#9ad87a' },
+  { words: 'sagitta magna', name: 'Conjure Barbed Arrows', mana: 80, lvl: 14, cd: 2000, kind: 'conjure', item: 'barbed_arrow', count: 10, voc: ['ranger'] },
   // Taught by Wend in the Saltmarsh (quest flag 'marsh_rite'). stat = area damage from a weapon skill.
   { words: 'vis tremor', name: 'Earthquake', mana: 120, lvl: 20, cd: 4000, kind: 'area', radius: 2, stat: 'melee', voc: ['warden'], quest: 'marsh_rite', color: '#c8a060' },
   { words: 'arcus pluvia', name: 'Arrow Rain', mana: 110, lvl: 20, cd: 4000, kind: 'area', radius: 2, stat: 'distance', voc: ['ranger'], quest: 'marsh_rite', color: '#d0f0ff' },

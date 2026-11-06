@@ -81,6 +81,105 @@ function attackRange(p) {
   return w.range;
 }
 
+// ---------- Ranger helpers ----------
+
+// A bow with no arrows still lets you throw a feeble punch.
+function punchRoll(p) {
+  return randInt(1, 3 + Math.floor(p.level / 4) + Math.floor(p.skills.melee.lvl / 10));
+}
+
+// Moves backpack ammo into an empty ammo slot: the `prefer` type first, else any ammo.
+function refillAmmo(p, prefer) {
+  if (p.equip.ammo) return true;
+  const stack = p.pack.find((s) => s.id === prefer) || p.pack.find((s) => ITEMS[s.id].slot === 'ammo');
+  if (!stack) return false;
+  const id = stack.id;
+  const n = countIn(p.pack, id);
+  removeFrom(p.pack, id, n);
+  p.equip.ammo = { id, count: n };
+  log(`You refill your quiver with ${n} ${ITEMS[id].name}${n === 1 ? '' : 's'}.`, 'dim');
+  ui.dirty = true;
+  return true;
+}
+
+function hasArrows(p) {
+  const a = p.equip.ammo;
+  if (a && ITEMS[a.id].slot === 'ammo') return true;
+  return refillAmmo(p, p.lastAmmo);
+}
+
+function breakCloak(p) {
+  if (!p.cloak) return;
+  p.cloak = 0;
+  log('You are revealed!', 'warn');
+  ui.dirty = true;
+}
+
+function bowShotRoll(p, w, ammoDef) {
+  const hitChance = Math.min(0.95, 0.62 + p.skills.distance.lvl * 0.006 + (p.focus > 0 ? 0.1 : 0));
+  if (Math.random() > hitChance) return { hit: false, dmg: 0 };
+  const max = 0.12 * p.skills.distance.lvl * (w.atk + ammoDef.atk) + p.level / 2;
+  return { hit: true, dmg: randInt(Math.floor(max * 0.15), Math.floor(max)) };
+}
+
+// Fires one arrow from the quiver at t (caller checks bow, ammo, range, LOS). Returns true on a hit.
+// Arrows that hit are remembered on the creature; some can be recovered from its corpse.
+function fireArrow(p, t, w, mult = 1, color = '#e8d8a8') {
+  const ammo = p.equip.ammo;
+  const ammoId = ammo.id;
+  ammo.count--;
+  if (ammo.count <= 0) {
+    p.equip.ammo = null;
+    p.lastAmmo = ammoId;
+    refillAmmo(p, ammoId);
+  }
+  train(p, 'distance', 1);
+  addEffect({ type: 'proj', x: p.x, y: p.y, tx: t.x, ty: t.y, z: p.z, color, ms: 220, big: mult > 1 });
+  ui.dirty = true;
+  const r = bowShotRoll(p, w, ITEMS[ammoId]);
+  if (!r.hit) { puff(t, 'miss'); return false; }
+  t.arrowsIn = t.arrowsIn || {};
+  t.arrowsIn[ammoId] = (t.arrowsIn[ammoId] || 0) + 1;
+  hitCreature(t, Math.floor(r.dmg * mult), true, '#ff4040');
+  return true;
+}
+
+// Conjured ammo goes straight into the quiver when it's empty or holds the same type.
+function conjureItems(p, id, count) {
+  const def = ITEMS[id];
+  const ammo = p.equip.ammo;
+  if (def.slot !== 'ammo' || (ammo && ammo.id !== id)) { giveOrDrop(p, id, count); return; }
+  const fit = Math.max(0, Math.min(count, Math.floor((freeCap(p) + 1e-6) / def.w)));
+  if (fit) {
+    if (ammo) ammo.count += fit;
+    else p.equip.ammo = { id, count: fit };
+  }
+  if (count > fit) {
+    dropPile(p.x, p.y, p.z, [{ id, count: count - fit }]);
+    log(`You cannot carry all the ${def.name}s. Some fall to the ground.`, 'warn');
+  }
+  ui.dirty = true;
+}
+
+// Best tile to leap to, moving away from `from`: 2 tiles straight back first, then any 2-tile hop, then 1 tile.
+function leapSpot(p, from) {
+  const sx = Math.sign(p.x - from.x);
+  const sy = Math.sign(p.y - from.y);
+  const dirs = (sx || sy) ? [[sx, sy]] : [];
+  for (const [dx, dy] of DIRS8) if (!(dx === sx && dy === sy)) dirs.push([dx, dy]);
+  const base = dist(p, from);
+  for (const n of [2, 1]) {
+    for (const [dx, dy] of dirs) {
+      const x = p.x + dx * n;
+      const y = p.y + dy * n;
+      if (Math.max(Math.abs(x - from.x), Math.abs(y - from.y)) <= base) continue;
+      if (n === 2 && !canEnter(p.x + dx, p.y + dy, p.z)) continue;
+      if (canEnter(x, y, p.z)) return { x, y };
+    }
+  }
+  return null;
+}
+
 // ---------- Player -> creature ----------
 
 function playerAttackTick(now) {
@@ -104,28 +203,28 @@ function playerAttackTick(now) {
   if (kind === 'melee') {
     if (d > 1) return;
     p.attackAt = now + ATTACK_TICK;
+    breakCloak(p);
     train(p, 'melee', 1);
     hitCreature(t, meleeRoll(p), true, '#ff4040');
     return;
   }
-  if (d > w.range || !lineOfSight(p.x, p.y, t.x, t.y, p.z)) return;
-  if (kind === 'bow') {
-    const ammo = p.equip.ammo;
-    if (!ammo || ITEMS[ammo.id].slot !== 'ammo') {
-      if (now > (p.noAmmoMsg || 0)) { log('You have no ammunition.', 'warn'); p.noAmmoMsg = now + 4000; }
+  if (kind === 'bow' && !hasArrows(p)) {
+    if (d > 1) {
+      if (now > (p.noAmmoMsg || 0)) { log('You have no ammunition. Get close to punch.', 'warn'); p.noAmmoMsg = now + 4000; }
       return;
     }
     p.attackAt = now + ATTACK_TICK;
-    ammo.count--;
-    const arrowAtk = ITEMS[ammo.id].atk;
-    if (ammo.count <= 0) p.equip.ammo = null;
-    train(p, 'distance', 1);
-    addEffect({ type: 'proj', x: p.x, y: p.y, tx: t.x, ty: t.y, z: p.z, color: '#e8d8a8', ms: 220 });
-    const hitChance = Math.min(0.95, 0.62 + p.skills.distance.lvl * 0.006);
-    if (Math.random() > hitChance) { puff(t, 'miss'); return; }
-    const max = 0.12 * p.skills.distance.lvl * (w.atk + arrowAtk) + p.level / 2;
-    hitCreature(t, randInt(Math.floor(max * 0.15), Math.floor(max)), true, '#ff4040');
-    ui.dirty = true;
+    breakCloak(p);
+    if (now > (p.noAmmoMsg || 0)) { log('You have no ammunition. You punch!', 'warn'); p.noAmmoMsg = now + 4000; }
+    train(p, 'melee', 1);
+    hitCreature(t, punchRoll(p), true, '#ff9060');
+    return;
+  }
+  if (d > w.range || !lineOfSight(p.x, p.y, t.x, t.y, p.z)) return;
+  if (kind === 'bow') {
+    p.attackAt = now + (p.focus > 0 ? 1500 : ATTACK_TICK);
+    breakCloak(p);
+    fireArrow(p, t, w);
     return;
   }
   if (kind === 'wand') {
@@ -134,6 +233,7 @@ function playerAttackTick(now) {
       return;
     }
     p.attackAt = now + ATTACK_TICK;
+    breakCloak(p);
     spendMana(p, w.mana);
     const col = p.voc === 'mender' ? '#7ad04a' : '#ff8a2a';
     addEffect({ type: 'proj', x: p.x, y: p.y, tx: t.x, ty: t.y, z: p.z, color: col, ms: 200, big: true });
@@ -172,6 +272,12 @@ function killCreature(c) {
       if (Math.random() < chance) addToStacks(loot, id, randInt(lo, hi), 20);
     }
   }
+  // Recover some of the player's arrows (even from summons: they're your arrows).
+  for (const [id, n] of Object.entries(c.arrowsIn || {})) {
+    let back = 0;
+    for (let i = 0; i < n; i++) if (Math.random() < 0.4) back++;
+    if (back) addToStacks(loot, id, back, 20);
+  }
   dropPile(c.x, c.y, c.z, loot, { kind: 'corpse', name: `dead ${c.def.name.replace(/^The /, '')}`, glyph: c.def.glyph, expires: Date.now() + 90000 });
   player.kills++;
   const lootText = loot.length ? loot.map((l) => `${l.count > 1 ? `${l.count} ` : ''}${ITEMS[l.id].name}${l.count > 1 && !l.id.endsWith('s') && l.id !== 'gold' ? 's' : ''}`).join(', ') : 'nothing';
@@ -192,6 +298,7 @@ function killCreature(c) {
 function creatureAttacks(now) {
   const p = player;
   if (p.dead) return;
+  if (p.cloak) return; // creatures can't see a cloaked ranger
   if (isSafeTile(p.x, p.y, p.z)) return;
   for (const c of creatures) {
     if (c.z !== p.z) continue;
@@ -302,6 +409,7 @@ function playerDies(src) {
     bagMsg = 'Your backpack was empty.';
   }
   p.target = null; p.path = null; p.pending = null; p.talking = null;
+  p.cloak = 0; p.focus = 0;
   closeWindow();
   log(`You were killed by ${src.def.boss ? '' : 'a '}${src.def.name}.`, 'hurt');
   showDeath({
@@ -316,6 +424,8 @@ function respawnPlayer() {
   p.mana = maxMana(p);
   p.haste = 0;
   p.mshield = 0;
+  p.cloak = 0;
+  p.focus = 0;
   placeAt(p, TEMPLE.x, TEMPLE.y, TEMPLE.z);
   if (entityAt(TEMPLE.x, TEMPLE.y, TEMPLE.z) !== p) {
     // something is standing on the altar; nudge
@@ -374,17 +484,33 @@ function castSpell(words, now) {
   if (spell.voc && !spell.voc.includes(p.voc)) return fail(`Your vocation cannot use this spell.`);
   if (spell.quest && !hasFlag(p, spell.quest)) return fail('You have not learned this spell yet.');
   if (p.level < spell.lvl) return fail(`You need level ${spell.lvl} to cast ${spell.name}.`);
+  // Recasting an active cloak drops it for free.
+  if (spell.kind === 'cloak' && p.cloak) {
+    p.cloak = 0;
+    log('You step out of the shadows.', 'dim');
+    ui.dirty = true;
+    return true;
+  }
   if (now < p.exhaust || now < (p.cd[spell.words] || 0)) return fail('You are exhausted.');
   if (p.mana < spell.mana) return fail('You do not have enough mana.');
 
-  const needsTarget = ['strike', 'pierce'].includes(spell.kind);
+  const bowSpell = ['shot', 'snare'].includes(spell.kind);
+  const needsTarget = bowSpell || ['strike', 'pierce'].includes(spell.kind);
   const offensive = needsTarget || ['area', 'cleave', 'wave'].includes(spell.kind);
   if (offensive && isSafeTile(p.x, p.y, p.z)) return fail("You can't attack from a protection zone.");
   const t = p.target;
+  const w = weapon(p);
+  if (bowSpell && (!w || w.kind !== 'bow' || !hasArrows(p))) return fail('You need a bow and arrows.');
   if (needsTarget) {
     if (!t) return fail('You need a target for this spell.');
-    if (dist(p, t) > spell.range) return fail('Your target is too far away.');
+    if (dist(p, t) > (bowSpell ? w.range : spell.range)) return fail('Your target is too far away.');
     if (!lineOfSight(p.x, p.y, t.x, t.y, p.z)) return fail('You cannot throw there.');
+  }
+  let leapTo = null;
+  if (spell.kind === 'leap') {
+    if (!t) return fail('You need a target to leap away from.');
+    leapTo = leapSpot(p, t);
+    if (!leapTo) return fail('No room to leap.');
   }
   let portTo = null;
   if (spell.kind === 'portal') {
@@ -442,7 +568,7 @@ function castSpell(words, now) {
       break;
     }
     case 'conjure':
-      giveOrDrop(p, spell.item, spell.count);
+      conjureItems(p, spell.item, spell.count);
       addEffect({ type: 'sparkle', x: p.x, y: p.y, z: p.z, color: '#ff9a40', ms: 600 });
       log(`You conjure ${spell.count} ${ITEMS[spell.item].name}s.`, 'dim');
       break;
@@ -469,8 +595,36 @@ function castSpell(words, now) {
       }
       break;
     }
+    case 'shot':
+    case 'snare': {
+      const hit = fireArrow(p, t, w, spell.mult, spell.color);
+      if (hit && spell.kind === 'snare' && creatures.includes(t)) {
+        t.slowUntil = now + spell.slow;
+        addEffect({ type: 'ring', x: t.x, y: t.y, z: t.z, color: spell.color, ms: 700 });
+        log(`The ${t.def.name.replace(/^The /, '')} is snared.`, 'dim');
+      }
+      break;
+    }
+    case 'cloak':
+      p.cloak = 1;
+      p.target = null;
+      addEffect({ type: 'ring', x: p.x, y: p.y, z: p.z, color: '#5a6a7a', ms: 800 });
+      log('You melt into the shadows. Creatures can no longer see you. Attacking reveals you.', 'dim');
+      break;
+    case 'leap':
+      addEffect({ type: 'ring', x: p.x, y: p.y, z: p.z, color: '#a0e0a0', ms: 500 });
+      placeAt(p, leapTo.x, leapTo.y, p.z);
+      p.path = null; p.pending = null;
+      addEffect({ type: 'ring', x: p.x, y: p.y, z: p.z, color: '#a0e0a0', ms: 500 });
+      break;
+    case 'focus':
+      p.focus = spell.secs;
+      addEffect({ type: 'ring', x: p.x, y: p.y, z: p.z, color: '#ffd060', ms: 700 });
+      log('Your senses sharpen. Your shots come faster and truer.', 'dim');
+      break;
     default: break;
   }
+  if (offensive) breakCloak(p);
   sfx('spell');
   spendMana(p, spell.mana);
   p.exhaust = now + 1000;
@@ -489,6 +643,7 @@ function useRune(p, id, now) {
     const t = p.target;
     if (!t) { log('You need a target to use this rune.', 'warn'); return; }
     if (dist(p, t) > 5 || !lineOfSight(p.x, p.y, t.x, t.y, p.z)) { log('You cannot throw there.', 'warn'); return; }
+    breakCloak(p);
     addEffect({ type: 'proj', x: p.x, y: p.y, tx: t.x, ty: t.y, z: p.z, color: '#ff7a1a', ms: 180, big: true });
     hitCreature(t, randInt(Math.floor(ml * 1.0 + base + 12), Math.floor(ml * 1.8 + base + 26)), false, '#ff7a1a');
   } else {
